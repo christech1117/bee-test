@@ -1,0 +1,62 @@
+# syntax version.
+version: "3.9"
+
+services:
+  mysql:
+    platform: linux/x86_64
+    container_name: mysql
+    image: mysql:5.7
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: wordpress
+    networks:
+      - default
+    volumes:
+      - ~/.bee/storage/mysql:/var/lib/mysql
+
+  redis:
+    container_name: redis
+    image: redis:5.0.9-buster
+    ports:
+      - 6379:6379
+    stdin_open: true
+    tty: true
+    networks:
+      - default
+
+  rabbitmq:
+    build: ./docker/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "15671:15671"
+      - "15674:15674"
+    privileged: true
+    hostname: laradock-rabbitmq
+    volumes:
+      - ~/.bee/storage/rabbitmq:/var/lib/rabbitmq
+      - ./docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./docker/rabbitmq/management_agent.disable_metrics_collector.conf:/etc/rabbitmq/conf.d/management_agent.disable_metrics_collector.conf
+    depends_on:
+      - php-fcm-flow
+    networks:
+      - default
+
+  php-fcm-flow:
+    build:
+      context: ./docker/php-fcm-flow
+    container_name: php-fcm-flow
+    environment:
+      UPLOAD_LIMIT: 64M
+    volumes:
+      - ./:/app
+    tty: true
+    networks:
+      - default
+
+networks:
+  default:
+    name: fcm-backend
+    driver: bridge
